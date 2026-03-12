@@ -1,0 +1,7 @@
+flask
+flask-cors
+psutil
+google-generativeai
+requests
+schedule
+colorama
