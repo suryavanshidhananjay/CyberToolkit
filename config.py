@@ -1,0 +1,6 @@
+GEMINI_API_KEY = "AIzaSyAfV9BtNkajqyBetquBKtYbUt-xPgYl8dw"
+MONITORED_PATHS = ["/Users", "/tmp"]
+NETWORK_RANGE = "192.168.1.0/24"
+SCAN_INTERVAL = 30
+LOG_LEVEL = "WARNING"
+APP_SECRET_KEY = "cybertoolkit2026"
