@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CyberGuard AI — Security Dashboard</title>
+
+  <!-- Font Awesome 6.4.0 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <!-- Chart.js 4.4.0 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+
+  <style>
+    /* ═══════════════════════════════════
+       CSS VARIABLES — GitHub Dark + Cyber
+       ═══════════════════════════════════ */
+    :root {
+      --bg-base: #0d1117;
+      --bg-canvas: #161b22;
+      --bg-card: #21262d;
+      --bg-overlay: #1c2128;
+      --border: #30363d;
+      --border-muted: #21262d;
+
+      --green: #00ff88;
+      --green-github: #3fb950;
+      --green-dim: rgba(0,255,136,0.08);
+      --green-glow: rgba(0,255,136,0.25);
+      --red: #f85149;
+      --red-dim: rgba(248,81,73,0.1);
+      --yellow: #d29922;
+      --yellow-dim: rgba(210,153,34,0.1);
+      --blue: #58a6ff;
+      --blue-dim: rgba(88,166,255,0.1);
+      --purple: #bc8cff;
+
+      --text-primary: #e6edf3;
+      --text-secondary: #8b949e;
+      --text-muted: #484f58;
+      --text-link: #58a6ff;
+
+      --font-sans: -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif;
+      --font-mono: ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --transition: 80ms cubic-bezier(0.33,1,0.68,1);
+    }
+
+    /* ═══════════════════════════════════
+       GLOBAL BASE STYLES
+       ═══════════════════════════════════ */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg-base);
+      color: var(--text-primary);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg-base); }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 6px;
+      border: 2px solid var(--bg-base);
+    }
+
+    *:focus-visible {
+      outline: 2px solid var(--blue);
+      outline-offset: 2px;
+    }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      padding: 8px 16px;
+      text-align: left;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-overlay);
+    }
+    td {
+      padding: 8px 16px;
+      border-bottom: 1px solid var(--border-muted);
+      font-size: 13px;
+    }
+    tr:hover td { background: var(--bg-overlay); }
+    tr:last-child td { border-bottom: none; }
+
+    /* Inputs */
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      background: var(--bg-base);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      padding: 5px 12px;
+      font-size: 14px;
+      font-family: var(--font-sans);
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    input:focus {
+      outline: none;
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(88,166,255,0.15);
+    }
+
+    /* ═══════════════════════════════════
+       ANIMATIONS
+       ═══════════════════════════════════ */
+    @keyframes live-pulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0,255,136,0.4); }
+      50% { opacity: 0.8; box-shadow: 0 0 0 4px rgba(0,255,136,0); }
+    }
+    @keyframes critical-blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes countUp {
+      from { opacity: 0; transform: scale(0.9); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    @keyframes shimmer {
+      0%   { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    @keyframes dotBounce {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1); }
+    }
+
+    .loading-shimmer {
+      background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-overlay) 50%, var(--bg-card) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: var(--radius-sm);
+      height: 16px;
+    }
+
+    .card { animation: fadeInUp 0.3s ease both; }
+    .card:nth-child(1) { animation-delay: 0.05s; }
+    .card:nth-child(2) { animation-delay: 0.10s; }
+    .card:nth-child(3) { animation-delay: 0.15s; }
+    .card:nth-child(4) { animation-delay: 0.20s; }
+    .card:nth-child(5) { animation-delay: 0.25s; }
+    .card:nth-child(6) { animation-delay: 0.30s; }
+
+    /* ═══════════════════════════════════
+       COMPONENT STYLES
+       ═══════════════════════════════════ */
+
+    /* Card */
+    .card {
+      background: var(--bg-canvas);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--bg-canvas);
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .card-header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-header i { color: var(--green); font-size: 14px; width: 16px; text-align: center; }
+    .card-body { padding: 16px; }
+    .card-footer {
+      padding: 12px 16px;
+      background: var(--bg-overlay);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    /* Status dot */
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+    .dot-safe {
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+      animation: live-pulse 2s infinite;
+    }
+    .dot-danger { background: var(--red); animation: critical-blink 1s infinite; }
+    .dot-warning { background: var(--yellow); }
+    .dot-idle { background: var(--text-muted); }
+
+    /* Badge */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0 8px;
+      height: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      border-radius: 20px;
+      border: 1px solid transparent;
+    }
+    .badge-green { background: rgba(63,185,80,0.1); color: #3fb950; border-color: rgba(63,185,80,0.2); }
+    .badge-red { background: var(--red-dim); color: var(--red); border-color: rgba(248,81,73,0.2); }
+    .badge-yellow { background: var(--yellow-dim); color: var(--yellow); border-color: rgba(210,153,34,0.2); }
+    .badge-blue { background: var(--blue-dim); color: var(--blue); border-color: rgba(88,166,255,0.2); }
+    .badge-neon { background: var(--green-dim); color: var(--green); border-color: rgba(0,255,136,0.2); font-weight: 700; letter-spacing: 0.3px; }
+
+    /* Button */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-family: var(--font-sans);
+      transition: var(--transition);
+      white-space: nowrap;
+      border: 1px solid;
+    }
+    .btn-default { background: var(--bg-card); border-color: var(--border); color: var(--text-primary); }
+    .btn-default:hover { background: var(--bg-overlay); border-color: var(--text-secondary); }
+    .btn-primary { background: #238636; border-color: rgba(240,246,252,0.1); color: white; }
+    .btn-primary:hover { background: #2ea043; }
+    .btn-neon { background: var(--green-dim); border-color: rgba(0,255,136,0.3); color: var(--green); font-weight: 600; }
+    .btn-neon:hover { background: rgba(0,255,136,0.15); border-color: var(--green); box-shadow: 0 0 12px var(--green-glow); }
+    .btn-danger { background: rgba(248,81,73,0.1); border-color: rgba(248,81,73,0.3); color: var(--red); }
+    .btn-sm { padding: 3px 10px; font-size: 12px; }
+
+    /* Alert item */
+    .alert-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border-muted);
+      font-size: 13px;
+    }
+    .alert-item:last-child { border-bottom: none; }
+    .alert-item i { margin-top: 2px; font-size: 13px; }
+    .alert-time { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); margin-top: 2px; }
+
+    /* ═══════════════════════════════════
+       NAVBAR
+       ═══════════════════════════════════ */
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0;
+      height: 56px;
+      background: rgba(13,17,23,0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 16px;
+    }
+    .topbar-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .topbar-logo i { color: var(--green); font-size: 20px; }
+    .topbar-logo .brand { font-weight: 700; color: var(--text-primary); }
+    .topbar-logo .accent { color: var(--green); font-weight: 700; }
+    .topbar-divider { width: 1px; height: 20px; background: var(--border); margin: 0 8px; }
+
+    .topbar-nav { display: flex; gap: 4px; }
+    .topbar-nav a {
+      padding: 6px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: var(--transition);
+      text-decoration: none;
+    }
+    .topbar-nav a:hover { color: var(--text-primary); background: var(--bg-card); }
+    .topbar-nav a.tab-active { color: var(--text-primary); background: var(--bg-card); }
+
+    .topbar-spacer { flex: 1; }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .live-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .live-indicator span.live-text {
+      font-size: 12px;
+      color: var(--green);
+      font-family: var(--font-mono);
+      font-weight: 600;
+    }
+    .topbar-clock {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .notif-btn { position: relative; }
+    .notif-btn .notif-count {
+      position: absolute;
+      top: -6px; right: -6px;
+      background: var(--red);
+      color: white;
+      border-radius: 50%;
+      width: 16px; height: 16px;
+      font-size: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid var(--bg-base);
+    }
+
+    /* ═══════════════════════════════════
+       SIDEBAR
+       ═══════════════════════════════════ */
+    .sidebar {
+      position: fixed;
+      left: 0; top: 56px;
+      width: 256px;
+      height: calc(100vh - 56px);
+      background: var(--bg-canvas);
+      border-right: 1px solid var(--border);
+      padding: 16px 0;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+    .sidebar-section { padding: 0 8px; margin-bottom: 8px; }
+    .sidebar-label {
+      padding: 6px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--text-secondary);
+      transition: var(--transition);
+      margin-bottom: 1px;
+      position: relative;
+      text-decoration: none;
+    }
+    .nav-item:hover { background: var(--bg-card); color: var(--text-primary); }
+    .nav-item.nav-active {
+      background: var(--bg-card);
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+    .nav-item.nav-active::before {
+      content: "";
+      position: absolute;
+      left: -8px; top: 50%;
+      transform: translateY(-50%);
+      width: 3px; height: 20px;
+      background: var(--green);
+      border-radius: 0 3px 3px 0;
+    }
+    .nav-item i { width: 16px; text-align: center; font-size: 14px; }
+    .nav-item .nav-badge { margin-left: auto; }
+
+    .sidebar-divider { height: 1px; background: var(--border); margin: 12px 8px; }
+
+    .sidebar-status-section { padding: 0 8px; }
+    .sidebar-status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 8px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .sidebar-bottom {
+      margin-top: auto;
+      padding: 16px 16px 0;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* ═══════════════════════════════════
+       MAIN CONTENT
+       ═══════════════════════════════════ */
+    .main-content {
+      margin-left: 256px;
+      margin-top: 56px;
+      padding: 24px;
+    }
+
+    /* Page header */
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .page-header h1 { font-size: 20px; font-weight: 600; }
+    .page-header p { font-size: 14px; color: var(--text-secondary); margin-top: 2px; }
+    .page-header-actions { display: flex; gap: 8px; }
+
+    /* Health card */
+    .health-card .card-body {
+      display: flex;
+      align-items: center;
+      gap: 40px;
+      padding: 24px;
+    }
+    .health-visual {
+      position: relative;
+      width: 160px; height: 160px;
+      flex-shrink: 0;
+    }
+    .health-circle { display: block; }
+    .circle-bg { fill: none; stroke: var(--border); stroke-width: 8; }
+    .circle-progress {
+      fill: none; stroke: var(--green); stroke-width: 8;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 1.5s cubic-bezier(0.4,0,0.2,1), stroke 0.5s;
+    }
+    .health-center {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+    .health-number {
+      font-family: var(--font-mono);
+      font-size: 38px; font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1;
+    }
+    .health-status-text {
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 1.5px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    .health-breakdown { flex: 1; }
+    .health-breakdown h3 {
+      font-size: 13px; font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 16px;
+    }
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .bar-row .bar-label { font-size: 13px; color: var(--text-secondary); width: 120px; flex-shrink: 0; }
+    .bar-track {
+      flex: 1; height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%; width: 0%;
+      border-radius: 3px;
+      background: var(--green-github);
+      transition: width 1.2s cubic-bezier(0.4,0,0.2,1), background 0.3s;
+    }
+    .bar-pct {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-secondary);
+      width: 36px; text-align: right;
+    }
+
+    .threat-summary {
+      width: 200px; flex-shrink: 0;
+      background: var(--bg-overlay);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+    }
+    .threat-summary h4 {
+      font-size: 12px; font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+    .threat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border-muted);
+      font-size: 13px;
+    }
+    .threat-row:last-child { border-bottom: none; }
+    .threat-row span:first-child { color: var(--text-secondary); }
+
+    /* Stats row */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .stat-card .card-body {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .stat-icon {
+      width: 36px; height: 36px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 16px;
+    }
+    .stat-number {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 24px; font-weight: 700;
+      color: var(--text-primary);
+      animation: countUp 0.5s ease both;
+    }
+    .stat-label {
+      display: block;
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    /* Module grid */
+    .module-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    /* Generic card internals */
+    .card-body-nopad { padding: 0; }
+    .empty-state {
+      padding: 24px;
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+    .empty-state i { display: block; font-size: 24px; margin-bottom: 8px; opacity: 0.3; }
+
+    .input-row { display: flex; gap: 8px; margin-bottom: 12px; }
+    .input-row input { flex: 1; }
+
+    .form-label {
+      display: block;
+      font-size: 13px; font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+
+    .event-list { max-height: 140px; overflow-y: auto; }
+    .event-item {
+      padding: 6px 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border-muted);
+    }
+    .event-item:last-child { border-bottom: none; }
+
+    .action-bar {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .action-bar span { font-size: 13px; color: var(--text-secondary); }
+
+    /* Log stats */
+    .log-stats {
+      display: flex; gap: 16px;
+      margin-bottom: 12px;
+      padding: 10px 12px;
+      background: var(--bg-overlay);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+    }
+    .log-stat { text-align: center; }
+    .log-stat-number {
+      font-family: var(--font-mono);
+      font-size: 24px; font-weight: 700;
+    }
+    .log-stat-label { font-size: 11px; color: var(--text-secondary); }
+    .log-divider { width: 1px; background: var(--border); align-self: stretch; }
+
+    /* Password strength */
+    .strength-track {
+      height: 8px;
+      background: var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+    .strength-fill {
+      height: 100%; width: 0%;
+      border-radius: 4px;
+      background: var(--green-github);
+      transition: width 0.6s ease, background 0.3s;
+    }
+    .pass-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    .pass-score {
+      font-family: var(--font-mono);
+      font-size: 28px; font-weight: 700;
+      color: var(--text-primary);
+    }
+    .pass-of { font-size: 13px; color: var(--text-secondary); margin-left: 6px; }
+    .crack-label { font-size: 12px; color: var(--text-secondary); }
+    .crack-value { font-family: var(--font-mono); font-size: 12px; color: var(--green); }
+    .pass-feedback { margin-top: 12px; }
+    .pass-feedback div { font-size: 13px; color: var(--text-secondary); padding: 2px 0; }
+
+    /* AI advisor */
+    .ai-card { border-color: rgba(0,255,136,0.2); }
+    .ai-badge {
+      background: linear-gradient(135deg, #00ff88, #58a6ff);
+      color: black;
+      padding: 1px 8px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      margin-left: 6px;
+    }
+    .ai-output {
+      background: var(--bg-overlay);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      min-height: 100px;
+      font-size: 13px;
+      line-height: 1.6;
+      margin-bottom: 12px;
+      overflow-y: auto;
+      max-height: 160px;
+    }
+    .ai-output .placeholder { color: var(--text-muted); font-style: italic; }
+    .ai-typing {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 0;
+      margin-bottom: 8px;
+    }
+    .ai-typing .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      opacity: 0.8;
+      animation: dotBounce 1.4s infinite ease-in-out both;
+    }
+    .ai-typing .dot:nth-child(1) { animation-delay: -0.32s; }
+    .ai-typing .dot:nth-child(2) { animation-delay: -0.16s; }
+    .ai-typing .dot:nth-child(3) { animation-delay: 0s; }
+    .ai-typing span { font-size: 13px; color: var(--text-secondary); }
+    .btn-analyze-full {
+      width: 100%;
+      background: linear-gradient(135deg, rgba(0,255,136,0.15), rgba(88,166,255,0.15));
+      border: 1px solid rgba(0,255,136,0.3);
+      color: var(--green);
+      padding: 8px;
+      border-radius: var(--radius-sm);
+      font-size: 13px; font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      font-family: var(--font-sans);
+    }
+    .btn-analyze-full:hover {
+      background: linear-gradient(135deg, rgba(0,255,136,0.25), rgba(88,166,255,0.25));
+      box-shadow: 0 0 16px rgba(0,255,136,0.15);
+    }
+
+    /* Bottom row */
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .chart-canvas { height: 160px; }
+
+    /* Success msg */
+    .success-msg {
+      padding: 24px; text-align: center;
+    }
+    .success-msg i { font-size: 28px; color: var(--green); display: block; margin-bottom: 8px; }
+    .success-msg .msg-title { font-weight: 600; color: var(--green); margin-bottom: 4px; }
+    .success-msg .msg-sub { color: var(--text-secondary); font-size: 12px; }
+
+    /* Dashboard footer */
+    .dash-footer {
+      border-top: 1px solid var(--border);
+      margin-top: 8px;
+      padding-top: 16px;
+      padding-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════
+       NAVBAR
+       ═══════════════════════════════════ -->
+  <header class="topbar">
+    <!-- Logo -->
+    <div class="topbar-logo">
+      <i class="fa-solid fa-shield-halved"></i>
+      <span class="brand">CyberGuard</span>
+      <span class="accent">AI</span>
+      <div class="topbar-divider"></div>
+    </div>
+
+    <!-- Nav links -->
+    <nav class="topbar-nav">
+      <a class="tab-active" data-tab="overview">Overview</a>
+      <a data-tab="processes">Processes</a>
+      <a data-tab="network">Network</a>
+      <a data-tab="logs">Logs</a>
+      <a data-tab="password">Password</a>
+      <a data-tab="ai">AI Advisor</a>
+    </nav>
+
+    <div class="topbar-spacer"></div>
+
+    <!-- Right section -->
+    <div class="topbar-right">
+      <div class="live-indicator">
+        <span class="status-dot dot-safe"></span>
+        <span class="live-text">LIVE</span>
+      </div>
+      <div class="topbar-divider"></div>
+      <span id="clock" class="topbar-clock">00:00:00</span>
+      <div class="topbar-divider"></div>
+      <div class="notif-btn">
+        <button class="btn btn-default btn-sm">
+          <i class="fa-regular fa-bell"></i>
+        </button>
+        <span id="notif-count" class="notif-count">0</span>
+      </div>
+      <button class="btn btn-neon btn-sm" id="btn-full-scan">
+        <i class="fa-solid fa-bolt"></i> Full Scan
+      </button>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════
+       SIDEBAR
+       ═══════════════════════════════════ -->
+  <aside class="sidebar">
+    <!-- Module nav -->
+    <div class="sidebar-section">
+      <div class="sidebar-label">Security Modules</div>
+      <a class="nav-item nav-active" id="nav-dashboard"><i class="fa-solid fa-gauge"></i> Dashboard</a>
+      <a class="nav-item" id="nav-audit"><i class="fa-solid fa-microchip"></i> System Audit</a>
+      <a class="nav-item" id="nav-files"><i class="fa-solid fa-file-shield"></i> File Watch</a>
+      <a class="nav-item" id="nav-network"><i class="fa-solid fa-wifi"></i> Network</a>
+      <a class="nav-item" id="nav-logs"><i class="fa-solid fa-shield-cat"></i> Security Logs</a>
+      <a class="nav-item" id="nav-password"><i class="fa-solid fa-key"></i> Password</a>
+      <a class="nav-item" id="nav-ai"><i class="fa-solid fa-robot"></i> AI Advisor</a>
+    </div>
+
+    <!-- Divider -->
+    <div class="sidebar-divider"></div>
+
+    <!-- System status -->
+    <div class="sidebar-status-section">
+      <div class="sidebar-label">System Status</div>
+      <div class="sidebar-status-row">
+        <span>Firewall</span>
+        <span id="sidebar-firewall" class="badge badge-green">Active</span>
+      </div>
+      <div class="sidebar-status-row">
+        <span>Last Scan</span>
+        <span id="sidebar-lastscan" class="badge badge-blue">Never</span>
+      </div>
+      <div class="sidebar-status-row">
+        <span>Threats</span>
+        <span id="sidebar-threats" class="badge badge-red">0</span>
+      </div>
+    </div>
+
+    <!-- Bottom -->
+    <div class="sidebar-bottom">
+      CyberGuard AI &bull; Hawkathon 2026<br>
+      Universal AI University
+    </div>
+  </aside>
+
+  <!-- ═══════════════════════════════════
+       MAIN CONTENT
+       ═══════════════════════════════════ -->
+  <main class="main-content">
+
+    <!-- Page header -->
+    <div class="page-header">
+      <div>
+        <h1>Security Overview</h1>
+        <p id="last-scan-time">Last scan: Never</p>
+      </div>
+      <div class="page-header-actions">
+        <button class="btn btn-default" id="btn-export"><i class="fa-solid fa-download"></i> Export Report</button>
+        <button class="btn btn-neon" id="btn-scan-all"><i class="fa-solid fa-bolt"></i> Run Full Scan</button>
+      </div>
+    </div>
+
+    <!-- ═══ HEALTH SCORE CARD ═══ -->
+    <div class="card health-card" style="margin-bottom:16px">
+      <div class="card-header">
+        <div class="card-header-left"><i class="fa-solid fa-shield-halved"></i> System Health Score</div>
+        <span id="health-badge" class="badge badge-yellow">AT RISK</span>
+      </div>
+      <div class="card-body">
+        <!-- Circle -->
+        <div class="health-visual">
+          <svg class="health-circle" width="160" height="160" viewBox="0 0 160 160">
+            <circle class="circle-bg" cx="80" cy="80" r="70"></circle>
+            <circle class="circle-progress" id="health-ring"
+              cx="80" cy="80" r="70"
+              stroke-dasharray="439.82"
+              stroke-dashoffset="439.82"
+              transform="rotate(-90 80 80)"></circle>
+          </svg>
+          <div class="health-center">
+            <div class="health-number" id="health-number">&mdash;</div>
+            <div class="health-status-text" id="health-status-text">SCANNING</div>
+          </div>
+        </div>
+
+        <!-- Breakdown bars -->
+        <div class="health-breakdown">
+          <h3>Security Breakdown</h3>
+          <div class="bar-row">
+            <span class="bar-label">System Audit</span>
+            <div class="bar-track"><div class="bar-fill" id="fill-audit"></div></div>
+            <span class="bar-pct" id="pct-audit">&mdash;</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">File Integrity</span>
+            <div class="bar-track"><div class="bar-fill" id="fill-files"></div></div>
+            <span class="bar-pct" id="pct-files">&mdash;</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">Network</span>
+            <div class="bar-track"><div class="bar-fill" id="fill-network"></div></div>
+            <span class="bar-pct" id="pct-network">&mdash;</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">Security Logs</span>
+            <div class="bar-track"><div class="bar-fill" id="fill-logs"></div></div>
+            <span class="bar-pct" id="pct-logs">&mdash;</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">Password</span>
+            <div class="bar-track"><div class="bar-fill" id="fill-password"></div></div>
+            <span class="bar-pct" id="pct-password">&mdash;</span>
+          </div>
+        </div>
+
+        <!-- Threat summary -->
+        <div class="threat-summary">
+          <h4>Threat Summary</h4>
+          <div class="threat-row"><span>Processes</span><span id="t-processes" class="badge badge-blue">0</span></div>
+          <div class="threat-row"><span>File Alerts</span><span id="t-files" class="badge badge-red">0</span></div>
+          <div class="threat-row"><span>Network</span><span id="t-network" class="badge badge-yellow">0</span></div>
+          <div class="threat-row"><span>Login Fails</span><span id="t-logins" class="badge badge-red">0</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STATS ROW ═══ -->
+    <div class="stats-grid">
+      <div class="card stat-card">
+        <div class="card-body">
+          <div class="stat-icon" style="background:var(--blue-dim)"><i class="fa-solid fa-microchip" style="color:var(--blue)"></i></div>
+          <div><span class="stat-number" id="num-processes">&mdash;</span><span class="stat-label">Running Processes</span></div>
+        </div>
+      </div>
+      <div class="card stat-card">
+        <div class="card-body">
+          <div class="stat-icon" style="background:var(--green-dim)"><i class="fa-solid fa-wifi" style="color:var(--green)"></i></div>
+          <div><span class="stat-number" id="num-devices">&mdash;</span><span class="stat-label">Network Devices</span></div>
+        </div>
+      </div>
+      <div class="card stat-card">
+        <div class="card-body">
+          <div class="stat-icon" style="background:var(--blue-dim)"><i class="fa-solid fa-file-shield" style="color:var(--blue)"></i></div>
+          <div><span class="stat-number" id="num-files">&mdash;</span><span class="stat-label">Files Monitored</span></div>
+        </div>
+      </div>
+      <div class="card stat-card">
+        <div class="card-body">
+          <div class="stat-icon" style="background:var(--red-dim)"><i class="fa-solid fa-triangle-exclamation" style="color:var(--red)"></i></div>
+          <div><span class="stat-number" id="num-alerts">0</span><span class="stat-label">Active Alerts</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ MODULE CARDS GRID ═══ -->
+    <div class="module-grid">
+
+      <!-- Card 1: System Audit -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-header-left"><i class="fa-solid fa-microchip"></i> System Audit</div>
+          <span id="dot-audit" class="status-dot dot-idle"></span>
+        </div>
+        <div class="card-body-nopad">
+          <table>
+            <thead><tr><th>Process Name</th><th>CPU %</th><th>RAM %</th><th>Status</th></tr></thead>
+            <tbody id="tbody-audit">
+              <tr><td colspan="4">
+                <div class="empty-state"><i class="fa-solid fa-microchip"></i>Run audit to see active processes</div>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card-footer">
+          <div>Firewall: <span id="fw-status" class="badge badge-green">&mdash;</span> <span style="margin-left:12px">Ports: <span id="ports-open" class="badge badge-blue">&mdash;</span></span></div>
+          <button class="btn btn-neon btn-sm" id="btn-audit">Run Audit</button>
+        </div>
+      </div>
+
+      <!-- Card 2: File Integrity -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-header-left"><i class="fa-solid fa-file-shield"></i> File Integrity</div>
+          <span id="dot-files" class="status-dot dot-idle"></span>
+        </div>
+        <div class="card-body">
+          <label class="form-label">Directory to Monitor</label>
+          <div class="input-row">
+            <input type="text" id="input-path" placeholder="C:\Users\YourName\Desktop" />
+            <button class="btn btn-primary btn-sm" id="btn-monitor"><i class="fa-solid fa-play"></i> Monitor</button>
+          </div>
+          <div id="file-events" class="event-list">
+            <div class="empty-state"><i class="fa-solid fa-folder-open"></i>No directory selected</div>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span id="files-indexed">0 files indexed</span>
+          <span id="changes-found" style="color:var(--red)">0 changes</span>
+        </div>
+      </div>
+
+      <!-- Card 3: Network Monitor -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-header-left"><i class="fa-solid fa-wifi"></i> Network Monitor</div>
+          <span id="dot-network" class="status-dot dot-idle"></span>
+        </div>
+        <div class="card-body-nopad">
+          <div class="action-bar">
+            <span id="network-status-text">Ready to scan</span>
+            <button class="btn btn-neon btn-sm" id="btn-scan"><i class="fa-solid fa-magnifying-glass"></i> Scan</button>
+          </div>
+          <table>
+            <thead><tr><th>IP Address</th><th>MAC Address</th><th>Hostname</th><th>Status</th></tr></thead>
+            <tbody id="tbody-network">
+              <tr><td colspan="4">
+                <div class="empty-state"><i class="fa-solid fa-wifi"></i>Click Scan to discover devices</div>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card-footer">
+          <span id="device-count">0 devices found</span>
+        </div>
+      </div>
+
+      <!-- Card 4: Security Logs -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-header-left"><i class="fa-solid fa-shield-cat"></i> Security Logs</div>
+          <span id="dot-logs" class="status-dot dot-idle"></span>
+        </div>
+        <div class="card-body">
+          <div class="log-stats">
+            <div class="log-stat">
+              <div class="log-stat-number" id="failed-logins" style="color:var(--red)">0</div>
+              <div class="log-stat-label">Failed Logins</div>
+            </div>
+            <div class="log-divider"></div>
+            <div class="log-stat">
+              <div id="risk-level" class="badge badge-blue" style="margin:0 auto;font-size:14px;padding:4px 12px">&mdash;</div>
+              <div class="log-stat-label">Risk Level</div>
+            </div>
+          </div>
+          <div id="log-entries" class="event-list">
+            <div class="empty-state"><i class="fa-solid fa-clipboard-list"></i>No logs analyzed yet</div>
+          </div>
+        </div>
+        <div class="card-footer" style="justify-content:flex-end">
+          <button class="btn btn-neon btn-sm" id="btn-logs">Analyze Logs</button>
+        </div>
+      </div>
+
+      <!-- Card 5: Password Analyzer -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-header-left"><i class="fa-solid fa-key"></i> Password Analyzer</div>
+          <span id="dot-password" class="status-dot dot-idle"></span>
+        </div>
+        <div class="card-body">
+          <label class="form-label">Test Password</label>
+          <div class="input-row" style="margin-bottom:16px">
+            <input type="password" id="input-password" placeholder="Enter a password to analyze" />
+            <button id="btn-eye" class="btn btn-default btn-sm"><i id="eye-icon" class="fa-solid fa-eye"></i></button>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <span style="font-size:13px">Password Strength</span>
+            <span id="strength-label" class="badge">&mdash;</span>
+          </div>
+          <div class="strength-track">
+            <div class="strength-fill" id="strength-fill"></div>
+          </div>
+
+          <div class="pass-meta">
+            <div><span class="pass-score" id="pass-score">&mdash;</span><span class="pass-of">/100</span></div>
+            <div><span class="crack-label">Cracks in: </span><span class="crack-value" id="crack-time">&mdash;</span></div>
+          </div>
+          <div class="pass-feedback" id="pass-feedback"></div>
+        </div>
+        <div class="card-footer" style="justify-content:flex-end">
+          <button class="btn btn-primary btn-sm" id="btn-analyze-pass"><i class="fa-solid fa-lock"></i> Analyze</button>
+        </div>
+      </div>
+
+      <!-- Card 6: AI Advisor -->
+      <div class="card ai-card">
+        <div class="card-header">
+          <div class="card-header-left">
+            <i class="fa-solid fa-robot"></i> AI Advisor
+            <span class="ai-badge">&#10022; GEMINI</span>
+          </div>
+          <span id="dot-ai" class="status-dot dot-idle"></span>
+        </div>
+        <div class="card-body">
+          <div class="ai-output" id="ai-output">
+            <p class="placeholder">Your AI security advisor is ready. Run a scan or ask a question below.</p>
+          </div>
+          <div class="ai-typing" id="ai-typing">
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span>Analyzing...</span>
+          </div>
+          <div class="input-row" style="margin-bottom:8px">
+            <input type="text" id="ai-input" placeholder="Ask: Am I safe right now?" />
+            <button class="btn btn-default btn-sm" id="btn-ask"><i class="fa-solid fa-paper-plane"></i></button>
+          </div>
+          <button class="btn-analyze-full" id="btn-analyze-all">&#128269; Analyze All Threats with AI</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ BOTTOM ROW ═══ -->
+    <div class="bottom-grid">
+      <!-- Threat Timeline -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-header-left"><i class="fa-solid fa-chart-line"></i> Threat Timeline</div>
+          <span class="badge badge-blue">Last 24 hours</span>
+        </div>
+        <div class="card-body">
+          <canvas id="chart-timeline" class="chart-canvas"></canvas>
+        </div>
+        <div class="card-footer">
+          <span>Updates every 30 seconds</span>
+          <span id="timeline-last-update">&mdash;</span>
+        </div>
+      </div>
+
+      <!-- Live Alert Feed -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-header-left"><i class="fa-solid fa-bell" style="color:var(--red)"></i> Live Alerts</div>
+          <span id="alerts-badge" class="badge badge-red">0</span>
+        </div>
+        <div class="card-body" style="padding-top:8px">
+          <div id="alerts-feed" style="max-height:220px;overflow-y:auto">
+            <div id="no-alerts-msg" class="success-msg">
+              <i class="fa-solid fa-shield-check"></i>
+              <p class="msg-title">All Clear</p>
+              <p class="msg-sub">No threats detected</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ FOOTER ═══ -->
+    <footer class="dash-footer">
+      <span>CyberGuard AI &bull; Hawkathon 2026 &bull; Universal AI University</span>
+      <span><i class="fa-solid fa-lock" style="margin-right:4px"></i>All data stays on your machine</span>
+    </footer>
+
+  </main>
+
+  <!-- ═══════════════════════════════════
+       JAVASCRIPT
+       ═══════════════════════════════════ -->
+  <script>
+    // 1. CLOCK
+    function updateClock() {
+      var now = new Date();
+      document.getElementById('clock').textContent =
+        now.toLocaleTimeString('en-GB');
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    // 2. HEALTH SCORE
+    function setHealthScore(score, breakdown) {
+      var ring = document.getElementById('health-ring');
+      var circumference = 2 * Math.PI * 70;
+      var offset = circumference * (1 - score / 100);
+      ring.style.strokeDashoffset = offset;
+
+      var color = score >= 70 ? '#3fb950' : score >= 40 ? '#d29922' : '#f85149';
+      ring.style.stroke = color;
+
+      var numEl = document.getElementById('health-number');
+      var current = 0;
+      var timer = setInterval(function() {
+        current = Math.min(current + 2, score);
+        numEl.textContent = current;
+        if (current >= score) clearInterval(timer);
+      }, 20);
+
+      var label = document.getElementById('health-status-text');
+      var badge = document.getElementById('health-badge');
+      if (score >= 70) {
+        label.textContent = 'SECURE';
+        badge.textContent = 'Secure';
+        badge.className = 'badge badge-green';
+      } else if (score >= 40) {
+        label.textContent = 'AT RISK';
+        badge.textContent = 'At Risk';
+        badge.className = 'badge badge-yellow';
+      } else {
+        label.textContent = 'CRITICAL';
+        badge.textContent = 'Critical';
+        badge.className = 'badge badge-red';
+      }
+
+      if (breakdown) {
+        Object.entries(breakdown).forEach(function(entry) {
+          var key = entry[0], val = entry[1];
+          var fill = document.getElementById('fill-' + key);
+          var pct = document.getElementById('pct-' + key);
+          if (fill) {
+            fill.style.width = val + '%';
+            fill.style.background = val >= 70 ? '#3fb950' : val >= 40 ? '#d29922' : '#f85149';
+          }
+          if (pct) pct.textContent = val + '%';
+        });
+      }
+    }
+
+    setTimeout(function() {
+      setHealthScore(72, { audit: 85, files: 90, network: 60, logs: 55, password: 70 });
+    }, 800);
+
+    // 3. CHART.JS
+    var ctx = document.getElementById('chart-timeline').getContext('2d');
+    var labels = [];
+    for (var i = 0; i < 12; i++) {
+      var h = new Date();
+      h.setHours(h.getHours() - (11 - i));
+      labels.push(h.getHours().toString().padStart(2, '0') + ':00');
+    }
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Threats',
+            data: [0, 1, 0, 2, 1, 3, 0, 0, 1, 2, 0, 1],
+            borderColor: '#f85149',
+            backgroundColor: 'rgba(248,81,73,0.08)',
+            fill: true, tension: 0.4,
+            pointRadius: 3, pointHoverRadius: 5, borderWidth: 2
+          },
+          {
+            label: 'Alerts',
+            data: [0, 0, 1, 1, 0, 2, 0, 1, 0, 1, 1, 0],
+            borderColor: '#d29922',
+            backgroundColor: 'rgba(210,153,34,0.08)',
+            fill: true, tension: 0.4,
+            pointRadius: 3, pointHoverRadius: 5, borderWidth: 2
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { intersect: false, mode: 'index' },
+        plugins: {
+          legend: {
+            labels: { color: '#8b949e', font: { size: 12 }, usePointStyle: true, pointStyleWidth: 8 }
+          },
+          tooltip: {
+            backgroundColor: '#21262d',
+            borderColor: '#30363d',
+            borderWidth: 1,
+            titleColor: '#e6edf3',
+            bodyColor: '#8b949e'
+          }
+        },
+        scales: {
+          x: { grid: { color: '#21262d' }, ticks: { color: '#8b949e', font: { size: 11 } } },
+          y: { grid: { color: '#21262d' }, ticks: { color: '#8b949e', font: { size: 11 }, stepSize: 1 }, beginAtZero: true }
+        }
+      }
+    });
+
+    // 4. SIDEBAR NAV
+    document.querySelectorAll('.nav-item').forEach(function(item) {
+      item.addEventListener('click', function() {
+        document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('nav-active'); });
+        item.classList.add('nav-active');
+      });
+    });
+
+    // 5. TOP NAV TABS
+    document.querySelectorAll('.topbar-nav a').forEach(function(tab) {
+      tab.addEventListener('click', function() {
+        document.querySelectorAll('.topbar-nav a').forEach(function(t) { t.classList.remove('tab-active'); });
+        tab.classList.add('tab-active');
+      });
+    });
+
+    // 6. PASSWORD EYE TOGGLE
+    document.getElementById('btn-eye').addEventListener('click', function() {
+      var input = document.getElementById('input-password');
+      var icon = document.getElementById('eye-icon');
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'fa-solid fa-eye-slash';
+      } else {
+        input.type = 'password';
+        icon.className = 'fa-solid fa-eye';
+      }
+    });
+
+    // 7. ADD ALERT HELPER
+    function addAlert(message, level) {
+      level = level || 'danger';
+      var colors = { danger: '#f85149', warning: '#d29922', info: '#58a6ff' };
+      var icons = { danger: 'fa-circle-exclamation', warning: 'fa-triangle-exclamation', info: 'fa-circle-info' };
+
+      var noMsg = document.getElementById('no-alerts-msg');
+      if (noMsg) noMsg.style.display = 'none';
+
+      var el = document.createElement('div');
+      el.className = 'alert-item';
+      el.style.borderLeft = '3px solid ' + colors[level];
+      el.style.paddingLeft = '10px';
+      el.innerHTML =
+        '<i class="fa-solid ' + icons[level] + '" style="color:' + colors[level] + ';margin-top:2px"></i>' +
+        '<div style="flex:1">' +
+          '<div style="font-size:13px">' + message + '</div>' +
+          '<div class="alert-time">' + new Date().toLocaleTimeString() + '</div>' +
+        '</div>';
+
+      var feed = document.getElementById('alerts-feed');
+      feed.insertBefore(el, feed.firstChild);
+
+      var badge = document.getElementById('alerts-badge');
+      badge.textContent = parseInt(badge.textContent || 0) + 1;
+      var notif = document.getElementById('notif-count');
+      notif.textContent = parseInt(notif.textContent || 0) + 1;
+    }
+
+    // 8. BUTTON HANDLERS (placeholders for backend wiring)
+    document.getElementById('btn-audit').onclick = function() { console.log('Audit triggered'); };
+    document.getElementById('btn-monitor').onclick = function() { console.log('Monitor:', document.getElementById('input-path').value); };
+    document.getElementById('btn-scan').onclick = function() { console.log('Network scan'); };
+    document.getElementById('btn-logs').onclick = function() { console.log('Log analysis'); };
+    document.getElementById('btn-analyze-pass').onclick = function() { console.log('Password check:', document.getElementById('input-password').value); };
+    document.getElementById('btn-ask').onclick = function() { console.log('AI ask:', document.getElementById('ai-input').value); };
+    document.getElementById('btn-analyze-all').onclick = function() { console.log('Full AI analysis'); };
+    document.getElementById('btn-full-scan').onclick = function() { console.log('Full scan'); };
+    document.getElementById('btn-scan-all').onclick = function() { console.log('Full scan'); };
+    document.getElementById('btn-export').onclick = function() { console.log('Export report'); };
+
+    // 9. DEMO ALERT ON LOAD
+    setTimeout(function() {
+      addAlert('System scan initiated — monitoring active', 'info');
+    }, 2000);
+  </script>
+</body>
+</html>
